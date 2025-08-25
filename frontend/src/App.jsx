@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
+import { useLocation } from 'react-router-dom';
 
 ChartJS.register(
   CategoryScale,
@@ -31,23 +32,117 @@ export default function App() {
   const renderPage = () => {
     if (currentPage === 'login') return <LoginPage onPageChange={setCurrentPage} showMessage={showMessage} />;
     if (currentPage === 'dashboard') return <DashboardPage onPageChange={setCurrentPage} showMessage={showMessage} />;
+    if (currentPage === 'profile') return <ProfilePage onPageChange={setCurrentPage} showMessage={showMessage} />;
+    if (currentPage === 'transactions') return <TransactionsPage onPageChange={setCurrentPage} showMessage={showMessage} />;
     return <RegisterPage onPageChange={setCurrentPage} showMessage={showMessage} />;
   };
 
+  const isAuthPage = currentPage === 'login' || currentPage === 'register';
+
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl bg-white p-8 rounded-lg shadow-md">
-        <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">Aplikasi Keuangan</h1>
-        {renderPage()}
-        {message && (
-          <div className="mt-4 p-3 bg-indigo-100 text-indigo-700 rounded-lg text-center font-medium">
-            {message}
-          </div>
-        )}
+    <div className="min-h-screen bg-gray-100 flex flex-col">
+      {!isAuthPage && (
+        <Navbar onPageChange={setCurrentPage} showMessage={showMessage} />
+      )}
+      <div className="flex-1 flex items-center justify-center p-4">
+        <div className="w-full max-w-2xl bg-white p-8 rounded-lg shadow-md">
+          <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">ur.FinancialApp</h1>
+          {renderPage()}
+          {message && (
+            <div className="mt-4 p-3 bg-indigo-100 text-indigo-700 rounded-lg text-center font-medium">
+              {message}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
 }
+
+// ========================
+// Komponen Navbar
+// ========================
+function Navbar({ onPageChange, showMessage }) {
+  const [user, setUser] = useState(null);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const API_URL = 'http://localhost:3001';
+  const token = localStorage.getItem('token');
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/auth/profile`, {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUser(data);
+        }
+      } catch (err) {
+        console.error('Error fetching user profile:', err);
+      }
+    };
+    if (token) {
+      fetchProfile();
+    }
+  }, [token]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    onPageChange('login');
+  };
+
+  return (
+    <nav className="bg-white shadow-lg">
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="flex justify-between">
+          <div className="flex space-x-7">
+            <div>
+              <button onClick={() => onPageChange('dashboard')} className="flex items-center py-4 px-2">
+                <span className="font-semibold text-gray-500 text-lg">FinApp</span>
+              </button>
+            </div>
+            <div className="hidden md:flex items-center space-x-1">
+              <button onClick={() => onPageChange('dashboard')} className="py-4 px-2 text-gray-500 font-semibold hover:text-indigo-500 transition duration-300">
+                Dashboard
+              </button>
+              <button onClick={() => onPageChange('transactions')} className="py-4 px-2 text-gray-500 font-semibold hover:text-indigo-500 transition duration-300">
+                Riwayat Transaksi
+              </button>
+            </div>
+          </div>
+          <div className="hidden md:flex items-center space-x-3">
+            {user && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                  className="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                >
+                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-indigo-500 text-white font-bold">
+                    {user.username.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-gray-700 font-medium">{user.username}</span>
+                </button>
+                {showProfileMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
+                    <button onClick={() => { onPageChange('profile'); setShowProfileMenu(false); }} className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left">
+                      Lihat Profil
+                    </button>
+                    <div className="border-t border-gray-100 my-1"></div>
+                    <button onClick={handleLogout} className="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100 w-full text-left">
+                      Logout
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+}
+
 
 // ========================
 // Komponen Halaman Registrasi
@@ -222,7 +317,208 @@ function LoginPage({ onPageChange, showMessage }) {
   );
 }
 
+// ========================
+// Komponen Halaman Profil Pengguna
+// ========================
+function ProfilePage({ onPageChange, showMessage }) {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const API_URL = 'http://localhost:3001';
+  const token = localStorage.getItem('token');
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/auth/profile`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+        });
+        if (!response.ok) {
+          throw new Error('Gagal mengambil data profil.');
+        }
+        const data = await response.json();
+        setUser(data);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching profile:', err);
+        setError('Gagal memuat data profil. Silakan coba masuk kembali.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (token) {
+      fetchProfile();
+    } else {
+      onPageChange('login');
+    }
+  }, [token, onPageChange]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    onPageChange('login');
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-4">
+        <p>Memuat data profil...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center p-4">
+        <p className="text-red-500 mb-4">{error}</p>
+        <button
+          onClick={handleLogout}
+          className="font-medium text-indigo-600 hover:text-indigo-500"
+        >
+          Kembali ke halaman login
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-700">Profil Pengguna</h2>
+        <button
+          onClick={handleLogout}
+          className="text-sm text-red-600 hover:text-red-700 font-medium"
+        >
+          Logout
+        </button>
+      </div>
+      <div className="bg-gray-50 p-6 rounded-lg shadow-inner space-y-4">
+        <div>
+          <h4 className="text-sm font-medium text-gray-500">Username</h4>
+          <p className="text-lg font-semibold text-gray-900">{user.username}</p>
+        </div>
+        <div>
+          <h4 className="text-sm font-medium text-gray-500">Email</h4>
+          <p className="text-lg font-semibold text-gray-900">{user.email}</p>
+        </div>
+        <div>
+          <h4 className="text-sm font-medium text-gray-500">Tanggal Bergabung</h4>
+          <p className="text-lg font-semibold text-gray-900">{new Date(user.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        </div>
+      </div>
+      <div className="mt-4 text-center">
+        <button
+          onClick={() => onPageChange('dashboard')}
+          className="font-medium text-indigo-600 hover:text-indigo-500"
+        >
+          &larr; Kembali ke Dashboard
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ========================
+// Komponen Halaman Riwayat Transaksi
+// ========================
+function TransactionsPage({ onPageChange, showMessage }) {
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const API_URL = 'http://localhost:3001';
+  const token = localStorage.getItem('token');
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/api/transactions`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (!response.ok) {
+        throw new Error('Gagal memuat data transaksi.');
+      }
+      const data = await response.json();
+      setTransactions(data.transactions);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching transactions:', err);
+      setError('Gagal memuat riwayat transaksi. Silakan coba masuk kembali.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [token]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    onPageChange('login');
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-4">
+        <p>Memuat riwayat transaksi...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center p-4">
+        <p className="text-red-500 mb-4">{error}</p>
+        <button onClick={handleLogout} className="font-medium text-indigo-600 hover:text-indigo-500">
+          Kembali ke halaman login
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <h2 className="text-2xl font-bold text-gray-700 mb-4 text-center">Riwayat Transaksi Lengkap</h2>
+      <div className="p-4 border rounded-lg shadow-sm">
+        <ul className="divide-y divide-gray-200">
+          {transactions.length > 0 ? (
+            transactions.map(t => (
+              <li key={t.id} className="py-4">
+                <div className="flex justify-between items-center">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900">{t.description || t.category_name}</p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(t.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  </div>
+                  <div className={`text-sm font-semibold ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                    {t.type === 'income' ? '+' : '-'}Rp {parseFloat(t.amount).toLocaleString('id-ID')}
+                  </div>
+                </div>
+              </li>
+            ))
+          ) : (
+            <p className="text-center text-gray-500 py-4">Belum ada transaksi.</p>
+          )}
+        </ul>
+      </div>
+      <div className="mt-4 text-center">
+        <button
+          onClick={() => onPageChange('dashboard')}
+          className="font-medium text-indigo-600 hover:text-indigo-500"
+        >
+          &larr; Kembali ke Dashboard
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ========================
 // Komponen Halaman Dashboard
+// ========================
 function DashboardPage({ onPageChange, showMessage }) {
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -455,12 +751,20 @@ function DashboardPage({ onPageChange, showMessage }) {
     <div className="space-y-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-700">Dashboard</h2>
-        <button
-          onClick={handleLogout}
-          className="text-sm text-red-600 hover:text-red-700 font-medium"
-        >
-          Logout
-        </button>
+        {/* <div className="flex space-x-4">
+          <button
+            onClick={() => onPageChange('profile')}
+            className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+          >
+            Profil
+          </button>
+          <button
+            onClick={handleLogout}
+            className="text-sm text-red-600 hover:text-red-700 font-medium"
+          >
+            Logout
+          </button>
+        </div> */}
       </div>
 
       {/* Bagian Grafik dan Summary */}
@@ -619,7 +923,7 @@ function DashboardPage({ onPageChange, showMessage }) {
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-900">{t.description || t.category_name}</p>
                     <p className="text-xs text-gray-500">
-                      {new Date(t.created_at).toLocaleDateString()} Jam :  {new Date(t.created_at).toLocaleTimeString('id-ID')}
+                      {new Date(t.created_at).toLocaleDateString()} pada pukul {new Date(t.created_at).toLocaleTimeString('id-ID')}
                     </p>
                   </div>
                   <div className="flex items-center space-x-2">

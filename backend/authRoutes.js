@@ -4,7 +4,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('./database');
-const { sendWelcomeEmail } = require('./emailService'); // Impor fungsi email selamat datang
+const { sendWelcomeEmail } = require('./emailService');
 
 const router = express.Router();
 
@@ -21,6 +21,20 @@ const authenticateToken = (req, res, next) => {
         next();
     });
 };
+
+// Rute untuk mendapatkan data profil pengguna
+router.get('/profile', authenticateToken, async (req, res) => {
+    try {
+        const user = await db.query('SELECT username, email, created_at FROM users WHERE id = $1', [req.user.id]);
+        if (user.rows.length === 0) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+        res.json(user.rows[0]);
+    } catch (error) {
+        console.error('Error fetching user profile:', error.stack);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
 
 // Rute untuk registrasi
 router.post('/register', async (req, res) => {

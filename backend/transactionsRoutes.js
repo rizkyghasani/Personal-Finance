@@ -7,6 +7,78 @@ const { sendNotificationEmail } = require('./emailService');
 
 const router = express.Router();
 
+// ==========================================================
+// Rute untuk Anggaran (Budgeting)
+// ==========================================================
+
+// Rute untuk mendapatkan semua anggaran pengguna
+router.get('/budgets', authenticateToken, async (req, res) => {
+    try {
+        const budgets = await db.query('SELECT * FROM budgets WHERE user_id = $1 ORDER BY year DESC, month DESC', [req.user.id]);
+        res.json(budgets.rows);
+    } catch (error) {
+        console.error('Error fetching budgets:', error.stack);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Rute untuk menambahkan anggaran baru
+router.post('/budgets', authenticateToken, async (req, res) => {
+    const { category_id, amount, month, year } = req.body;
+    try {
+        const result = await db.query(
+            'INSERT INTO budgets (user_id, category_id, amount, month, year) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+            [req.user.id, category_id, amount, month, year]
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (error) {
+        if (error.code === '23505') { // Error code for unique constraint violation
+            return res.status(409).json({ message: 'Budget for this category and month already exists' });
+        }
+        console.error('Error adding budget:', error.stack);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Rute untuk mengupdate anggaran
+router.put('/budgets/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    const { amount } = req.body;
+    try {
+        const result = await db.query(
+            'UPDATE budgets SET amount = $1 WHERE id = $2 AND user_id = $3 RETURNING *',
+            [amount, id, req.user.id]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Budget not found or not authorized' });
+        }
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error('Error updating budget:', error.stack);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Rute untuk menghapus anggaran
+router.delete('/budgets/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await db.query('DELETE FROM budgets WHERE id = $1 AND user_id = $2 RETURNING id', [id, req.user.id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Budget not found or not authorized' });
+        }
+        res.json({ message: 'Budget deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting budget:', error.stack);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+
+// ==========================================================
+// Rute untuk Transaksi (Sudah ada)
+// ==========================================================
+
 // Rute untuk mendapatkan ringkasan pengeluaran dan pemasukan bulanan berdasarkan rentang tanggal
 router.get('/summary/monthly', authenticateToken, async (req, res) => {
     const { startDate, endDate } = req.query;
