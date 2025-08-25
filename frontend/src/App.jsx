@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import './index.css';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import { Bar } from 'react-chartjs-2';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 // Main App component
 export default function App() {
@@ -216,38 +226,58 @@ function LoginPage({ onPageChange, showMessage }) {
 function DashboardPage({ onPageChange, showMessage }) {
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [summaryData, setSummaryData] = useState([]);
+  const [totalSummary, setTotalSummary] = useState({ overall_income: 0, overall_expense: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingId, setEditingId] = useState(null);
+
+  const today = new Date().toISOString().split('T')[0];
+  const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+  
+  const [dateRange, setDateRange] = useState({
+      startDate: firstDayOfMonth,
+      endDate: today,
+  });
 
   const [form, setForm] = useState({
     amount: '',
     type: 'expense',
     categoryId: '',
     description: '',
-    date: new Date().toISOString().split('T')[0],
+    date: today,
   });
 
   const API_URL = 'http://localhost:3001';
   const token = localStorage.getItem('token');
 
   // Fetch data from API
-  const fetchTransactions = async () => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/transactions`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-      });
-
-      if (!response.ok) {
+      const urlParams = new URLSearchParams(dateRange).toString();
+      
+      const [transactionsRes, categoriesRes, summaryRes, totalsRes] = await Promise.all([
+        fetch(`${API_URL}/api/transactions?${urlParams}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_URL}/api/transactions`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_URL}/api/transactions/summary/monthly?${urlParams}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_URL}/api/transactions/summary/totals?${urlParams}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+      ]);
+      
+      if (!transactionsRes.ok || !categoriesRes.ok || !summaryRes.ok || !totalsRes.ok) {
         throw new Error('Failed to fetch data.');
       }
-
-      const data = await response.json();
-      setTransactions(data.transactions);
-      setCategories(data.categories);
+      
+      const transactionsData = await transactionsRes.json();
+      const summaryData = await summaryRes.json();
+      const totalsData = await totalsRes.json();
+      
+      setTransactions(transactionsData.transactions);
+      setCategories(transactionsData.categories);
+      setSummaryData(summaryData);
+      setTotalSummary(totalsData);
       setError(null);
+
     } catch (err) {
       console.error('Error fetching data:', err);
       setError('Gagal memuat data. Silakan coba masuk kembali.');
@@ -257,8 +287,8 @@ function DashboardPage({ onPageChange, showMessage }) {
   };
 
   useEffect(() => {
-    fetchTransactions();
-  }, []);
+    fetchData();
+  }, [dateRange]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -283,7 +313,7 @@ function DashboardPage({ onPageChange, showMessage }) {
       type: 'expense',
       categoryId: '',
       description: '',
-      date: new Date().toISOString().split('T')[0],
+      date: today,
     });
   };
 
@@ -330,9 +360,9 @@ function DashboardPage({ onPageChange, showMessage }) {
         type: 'expense',
         categoryId: '',
         description: '',
-        date: new Date().toISOString().split('T')[0],
+        date: today,
       });
-      fetchTransactions(); // Refresh data
+      fetchData(); // Refresh all data
     } catch (err) {
       console.error('Error saving transaction:', err);
       showMessage('Gagal menyimpan transaksi. Coba lagi.');
@@ -357,18 +387,47 @@ function DashboardPage({ onPageChange, showMessage }) {
       }
 
       showMessage('Transaksi berhasil dihapus!');
-      fetchTransactions(); // Refresh data
+      fetchData(); // Refresh all data
     } catch (err) {
       console.error('Error deleting transaction:', err);
       showMessage('Gagal menghapus transaksi. Coba lagi.');
     }
   };
 
+  const handleDateChange = (e) => {
+    const { name, value } = e.target;
+    setDateRange(prev => ({ ...prev, [name]: value }));
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     onPageChange('login');
   };
+
+  // Prepare data for the chart
+  const chartLabels = summaryData.map(d => d.month);
+  const chartIncome = summaryData.map(d => d.total_income);
+  const chartExpense = summaryData.map(d => d.total_expense);
+
+  const chartData = {
+    labels: chartLabels,
+    datasets: [
+      {
+        label: 'Pemasukan',
+        data: chartIncome,
+        backgroundColor: 'rgba(52, 211, 153, 0.5)',
+      },
+      {
+        label: 'Pengeluaran',
+        data: chartExpense,
+        backgroundColor: 'rgba(239, 68, 68, 0.5)',
+      },
+    ],
+  };
+
+  const formattedIncome = parseFloat(totalSummary.overall_income || 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' });
+  const formattedExpense = parseFloat(totalSummary.overall_expense || 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' });
+  const formattedBalance = (parseFloat(totalSummary.overall_income || 0) - parseFloat(totalSummary.overall_expense || 0)).toLocaleString('id-ID', { style: 'currency', currency: 'IDR' });
 
   if (loading) {
     return (
@@ -394,7 +453,7 @@ function DashboardPage({ onPageChange, showMessage }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-700">Dashboard</h2>
         <button
           onClick={handleLogout}
@@ -403,15 +462,68 @@ function DashboardPage({ onPageChange, showMessage }) {
           Logout
         </button>
       </div>
-      
+
+      {/* Bagian Grafik dan Summary */}
+      <div className="p-4 border rounded-lg shadow-sm">
+        <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-gray-700">Ringkasan</h3>
+            <div className="flex items-center space-x-2">
+                <label className="text-sm font-medium text-gray-700">Periode:</label>
+                <input
+                    type="date"
+                    name="startDate"
+                    value={dateRange.startDate}
+                    onChange={handleDateChange}
+                    className="px-2 py-1 border rounded-md shadow-sm text-sm"
+                />
+                <span>-</span>
+                <input
+                    type="date"
+                    name="endDate"
+                    value={dateRange.endDate}
+                    onChange={handleDateChange}
+                    className="px-2 py-1 border rounded-md shadow-sm text-sm"
+                />
+            </div>
+        </div>
+        {summaryData.length > 0 ? (
+            <div className="space-y-4">
+                <div className="w-full h-64">
+                  <Bar
+                      options={{ responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' }, title: { display: false } } }}
+                      data={chartData}
+                  />
+                </div>
+                
+                {/* Tampilan Total Pemasukan dan Pengeluaran */}
+                <div className="flex justify-between space-x-2 text-sm">
+                    <div className="flex-1 bg-green-50 p-3 rounded-lg shadow-md border border-green-200">
+                        <h4 className="font-medium text-green-700">Total Pemasukan</h4>
+                        <p className="text-xl font-bold text-green-800 mt-1">{formattedIncome}</p>
+                    </div>
+                    <div className="flex-1 bg-red-50 p-3 rounded-lg shadow-md border border-red-200">
+                        <h4 className="font-medium text-red-700">Total Pengeluaran</h4>
+                        <p className="text-xl font-bold text-red-800 mt-1">{formattedExpense}</p>
+                    </div>
+                    <div className="flex-1 bg-blue-50 p-3 rounded-lg shadow-md border border-blue-200">
+                        <h4 className="font-medium text-blue-700">Saldo</h4>
+                        <p className="text-xl font-bold text-blue-800 mt-1">{formattedBalance}</p>
+                    </div>
+                </div>
+            </div>
+        ) : (
+            <p className="text-center text-gray-500 py-4">Belum ada data untuk ditampilkan di grafik.</p>
+        )}
+      </div>
+
       {/* Form Tambah/Edit Transaksi */}
       <div className="p-4 border rounded-lg shadow-sm">
         <h3 className="text-lg font-semibold text-gray-700 mb-4">
             {editingId ? 'Edit Transaksi' : 'Tambah Transaksi Baru'}
         </h3>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="flex items-center space-x-4">
-            <div className="flex-1">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
               <label className="block text-sm font-medium text-gray-700">Jumlah</label>
               <input
                 type="number"
@@ -423,7 +535,7 @@ function DashboardPage({ onPageChange, showMessage }) {
                 required
               />
             </div>
-            <div className="flex-1">
+            <div>
               <label className="block text-sm font-medium text-gray-700">Tipe</label>
               <select
                 name="type"
@@ -435,9 +547,7 @@ function DashboardPage({ onPageChange, showMessage }) {
                 <option value="income">Pemasukan</option>
               </select>
             </div>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="flex-1">
+            <div>
               <label className="block text-sm font-medium text-gray-700">Kategori</label>
               <select
                 name="categoryId"
@@ -456,7 +566,7 @@ function DashboardPage({ onPageChange, showMessage }) {
                   ))}
               </select>
             </div>
-            <div className="flex-1">
+            <div>
               <label className="block text-sm font-medium text-gray-700">Tanggal</label>
               <input
                 type="date"
@@ -499,7 +609,7 @@ function DashboardPage({ onPageChange, showMessage }) {
       </div>
 
       {/* Daftar Transaksi */}
-      <div className="p-4 border rounded-lg shadow-sm">
+      <div className="p-4 border rounded-lg shadow-sm max-h-96 overflow-y-auto">
         <h3 className="text-lg font-semibold text-gray-700 mb-4">Riwayat Transaksi</h3>
         <ul className="divide-y divide-gray-200">
           {transactions.length > 0 ? (
@@ -508,7 +618,9 @@ function DashboardPage({ onPageChange, showMessage }) {
                 <div className="flex justify-between items-center">
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-900">{t.description || t.category_name}</p>
-                    <p className="text-xs text-gray-500">{new Date(t.date).toLocaleDateString()}</p>
+                    <p className="text-xs text-gray-500">
+                      {new Date(t.created_at).toLocaleDateString()} Jam :  {new Date(t.created_at).toLocaleTimeString('id-ID')}
+                    </p>
                   </div>
                   <div className="flex items-center space-x-2">
                     <span className={`text-sm font-semibold ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>

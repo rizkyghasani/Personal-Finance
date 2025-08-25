@@ -6,26 +6,102 @@ const { authenticateToken } = require('./authRoutes');
 
 const router = express.Router();
 
+// Rute untuk mendapatkan ringkasan pengeluaran dan pemasukan bulanan berdasarkan rentang tanggal
+router.get('/summary/monthly', authenticateToken, async (req, res) => {
+    const { startDate, endDate } = req.query;
+    let query = `
+        SELECT 
+            TO_CHAR(date, 'YYYY-MM') AS month,
+            SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) AS total_income,
+            SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) AS total_expense
+        FROM transactions
+        WHERE user_id = $1
+    `;
+    const params = [req.user.id];
+
+    if (startDate) {
+        params.push(startDate);
+        query += ` AND date >= $${params.length}`;
+    }
+    if (endDate) {
+        params.push(endDate);
+        query += ` AND date <= $${params.length}`;
+    }
+
+    query += ` GROUP BY month ORDER BY month`;
+
+    try {
+        const summary = await db.query(query, params);
+        res.json(summary.rows);
+    } catch (error) {
+        console.error('Error fetching monthly summary:', error.stack);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Rute baru untuk mendapatkan total pemasukan dan pengeluaran berdasarkan rentang tanggal
+router.get('/summary/totals', authenticateToken, async (req, res) => {
+    const { startDate, endDate } = req.query;
+    let query = `
+        SELECT
+            SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) AS overall_income,
+            SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) AS overall_expense
+        FROM transactions
+        WHERE user_id = $1
+    `;
+    const params = [req.user.id];
+
+    if (startDate) {
+        params.push(startDate);
+        query += ` AND date >= $${params.length}`;
+    }
+    if (endDate) {
+        params.push(endDate);
+        query += ` AND date <= $${params.length}`;
+    }
+
+    try {
+        const totals = await db.query(query, params);
+        res.json(totals.rows[0]);
+    } catch (error) {
+        console.error('Error fetching overall totals:', error.stack);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // Rute untuk mendapatkan semua transaksi dan kategori untuk pengguna yang terotentikasi
 router.get('/', authenticateToken, async (req, res) => {
-    try {
-        // Ambil transaksi milik pengguna
-        const transactionsResult = await db.query(
-            `SELECT
-                t.id,
-                t.amount,
-                t.type,
-                t.description,
-                t.date,
-                c.name AS category_name
-             FROM transactions t
-             JOIN categories c ON t.category_id = c.id
-             WHERE t.user_id = $1
-             ORDER BY t.date DESC`,
-            [req.user.id]
-        );
+    const { startDate, endDate } = req.query;
+    let query = `
+        SELECT
+            t.id,
+            t.amount,
+            t.type,
+            t.description,
+            t.date,
+            t.created_at,
+            c.name AS category_name
+         FROM transactions t
+         LEFT JOIN categories c ON t.category_id = c.id
+         WHERE t.user_id = $1
+    `;
+    const params = [req.user.id];
+    
+    if (startDate) {
+        params.push(startDate);
+        query += ` AND t.date >= $${params.length}`;
+    }
+    if (endDate) {
+        params.push(endDate);
+        query += ` AND t.date <= $${params.length}`;
+    }
 
-        // Ambil semua kategori
+    // Mengurutkan berdasarkan created_at (transaksi terbaru di atas)
+    query += ` ORDER BY t.created_at DESC`;
+
+    try {
+        const transactionsResult = await db.query(query, params);
+
         const categoriesResult = await db.query('SELECT * FROM categories');
 
         res.json({
