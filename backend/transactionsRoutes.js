@@ -3,6 +3,7 @@
 const express = require('express');
 const db = require('./database');
 const { authenticateToken } = require('./authRoutes');
+const { sendNotificationEmail } = require('./emailService');
 
 const router = express.Router();
 
@@ -96,7 +97,6 @@ router.get('/', authenticateToken, async (req, res) => {
         query += ` AND t.date <= $${params.length}`;
     }
 
-    // Mengurutkan berdasarkan created_at (transaksi terbaru di atas)
     query += ` ORDER BY t.created_at DESC`;
 
     try {
@@ -123,6 +123,16 @@ router.post('/', authenticateToken, async (req, res) => {
             'INSERT INTO transactions (user_id, amount, type, category_id, description, date) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
             [req.user.id, amount, type, category_id, description, date]
         );
+        
+        // Cek jika transaksi adalah pengeluaran besar dan kirim notifikasi email
+        if (type === 'expense' && amount > 500000) {
+            const userResult = await db.query('SELECT email, username FROM users WHERE id = $1', [req.user.id]);
+            const { email, username } = userResult.rows[0];
+            
+            // Kirim email secara asinkron tanpa menunggu
+            sendNotificationEmail(email, username, result.rows[0]);
+        }
+
         res.status(201).json(result.rows[0]);
     } catch (error) {
         console.error('Error adding transaction:', error.stack);

@@ -4,6 +4,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('./database');
+const { sendWelcomeEmail } = require('./emailService'); // Impor fungsi email selamat datang
 
 const router = express.Router();
 
@@ -33,6 +34,10 @@ router.post('/register', async (req, res) => {
             [username, email, password_hash]
         );
         const user = result.rows[0];
+
+        // Kirim email selamat datang secara asinkron
+        sendWelcomeEmail(user.email, user.username);
+        
         res.status(201).json({ message: 'User registered successfully', user: { id: user.id, username: user.username } });
     } catch (error) {
         if (error.code === '23505') { // PostgreSQL error code for unique constraint violation
