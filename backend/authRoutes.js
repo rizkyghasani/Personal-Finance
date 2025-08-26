@@ -36,6 +36,50 @@ router.get('/profile', authenticateToken, async (req, res) => {
     }
 });
 
+// Rute untuk mengupdate username
+router.put('/profile/username', authenticateToken, async (req, res) => {
+    const { username } = req.body;
+    try {
+        const result = await db.query(
+            'UPDATE users SET username = $1 WHERE id = $2 RETURNING username',
+            [username, req.user.id]
+        );
+        res.json({ message: 'Username berhasil diperbarui', username: result.rows[0].username });
+    } catch (error) {
+        if (error.code === '23505') {
+            return res.status(409).json({ message: 'Username sudah digunakan' });
+        }
+        console.error('Error updating username:', error.stack);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Rute untuk mengupdate password
+router.put('/profile/password', authenticateToken, async (req, res) => {
+    const { oldPassword, newPassword } = req.body;
+    try {
+        const userResult = await db.query('SELECT password_hash FROM users WHERE id = $1', [req.user.id]);
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ message: 'User tidak ditemukan' });
+        }
+        const user = userResult.rows[0];
+
+        const isMatch = await bcrypt.compare(oldPassword, user.password_hash);
+        if (!isMatch) {
+            return res.status(400).json({ message: 'Password lama salah' });
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const newPasswordHash = await bcrypt.hash(newPassword, salt);
+        await db.query('UPDATE users SET password_hash = $1 WHERE id = $2', [newPasswordHash, req.user.id]);
+
+        res.json({ message: 'Password berhasil diperbarui' });
+    } catch (error) {
+        console.error('Error updating password:', error.stack);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 // Rute untuk registrasi
 router.post('/register', async (req, res) => {
     const { username, email, password } = req.body;

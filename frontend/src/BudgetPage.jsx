@@ -18,7 +18,10 @@ export default function BudgetPage({ onPageChange, showMessage }) {
   const [spending, setSpending] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [editingId, setEditingId] = useState(null); // State baru untuk mode edit
+  const [editingId, setEditingId] = useState(null);
+  const [selectedBudget, setSelectedBudget] = useState(null); // State untuk melihat detail anggaran
+  const [budgetDetails, setBudgetDetails] = useState([]); // State untuk detail transaksi anggaran
+  const [detailsLoading, setDetailsLoading] = useState(false);
 
   const [form, setForm] = useState({
       amount: '',
@@ -93,10 +96,8 @@ export default function BudgetPage({ onPageChange, showMessage }) {
             month: parseInt(form.month, 10),
             year: parseInt(form.year, 10),
         };
-        
         let response;
         if (editingId) {
-            // Edit budget
             response = await fetch(`${API_URL}/api/transactions/budgets/${editingId}`, {
                 method: 'PUT',
                 headers: {
@@ -106,7 +107,6 @@ export default function BudgetPage({ onPageChange, showMessage }) {
                 body: JSON.stringify(payload),
             });
         } else {
-            // Add new budget
             response = await fetch(`${API_URL}/api/transactions/budgets`, {
                 method: 'POST',
                 headers: {
@@ -173,6 +173,32 @@ export default function BudgetPage({ onPageChange, showMessage }) {
       }
   };
   
+  const handleShowDetails = async (budget) => {
+      setSelectedBudget(budget);
+      setDetailsLoading(true);
+      try {
+          const res = await fetch(`${API_URL}/api/transactions/budgets/details?month=${budget.month}&year=${budget.year}&categoryId=${budget.category_id}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const details = await res.json();
+          if (res.ok) {
+              setBudgetDetails(details);
+          } else {
+              throw new Error(details.message || 'Gagal memuat detail transaksi.');
+          }
+      } catch (err) {
+          console.error('Error fetching budget details:', err);
+          showMessage(err.message);
+      } finally {
+          setDetailsLoading(false);
+      }
+  };
+  
+  const handleCloseDetails = () => {
+      setSelectedBudget(null);
+      setBudgetDetails([]);
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     onPageChange('login');
@@ -315,6 +341,12 @@ export default function BudgetPage({ onPageChange, showMessage }) {
                             <div className={`h-2 rounded-full ${progressBarColor}`} style={{ width: `${Math.min(progress, 100)}%` }}></div>
                         </div>
                         <button
+                          onClick={() => handleShowDetails(b)}
+                          className="text-xs text-indigo-600 hover:text-indigo-900"
+                        >
+                          Lihat Detail
+                        </button>
+                        <button
                           onClick={() => handleEditClick(b)}
                           className="text-xs text-indigo-600 hover:text-indigo-900"
                         >
@@ -344,8 +376,43 @@ export default function BudgetPage({ onPageChange, showMessage }) {
           &larr; Kembali ke Dashboard
         </button>
       </div>
+      
+      {/* Modal untuk Detail Transaksi */}
+      {selectedBudget && (
+          <div className="fixed inset-0 z-50 overflow-y-auto bg-gray-900 bg-opacity-50 flex justify-center items-center">
+              <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+                  <div className="flex justify-between items-center mb-4 border-b pb-2">
+                      <h3 className="text-xl font-bold">Detail Pengeluaran untuk {categories.find(c => c.id === selectedBudget.category_id)?.name}</h3>
+                      <button onClick={handleCloseDetails} className="text-gray-400 hover:text-gray-600">
+                          &times;
+                      </button>
+                  </div>
+                  {detailsLoading ? (
+                      <p>Memuat detail transaksi...</p>
+                  ) : (
+                      <ul className="divide-y divide-gray-200 max-h-64 overflow-y-auto">
+                          {budgetDetails.length > 0 ? (
+                              budgetDetails.map(t => (
+                                  <li key={t.id} className="py-2">
+                                      <div className="flex justify-between">
+                                          <div>
+                                              <p className="text-sm font-medium">{t.description || 'Tanpa deskripsi'}</p>
+                                              <p className="text-xs text-gray-500">{new Date(t.date).toLocaleDateString('id-ID')}</p>
+                                          </div>
+                                          <div className="text-sm font-semibold text-red-600">
+                                              -Rp {parseFloat(t.amount).toLocaleString('id-ID')}
+                                          </div>
+                                      </div>
+                                  </li>
+                              ))
+                          ) : (
+                              <p className="text-center text-gray-500 py-4">Tidak ada transaksi di kategori ini untuk periode ini.</p>
+                          )}
+                      </ul>
+                  )}
+              </div>
+          </div>
+      )}
     </div>
   );
 }
-
-// nanti lanjut disini

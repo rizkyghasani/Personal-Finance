@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import BudgetPage from './BudgetPage';
+import CategoriesPage from './CategoriesPage';
 
 ChartJS.register(
   CategoryScale,
@@ -35,6 +36,7 @@ export default function App() {
     if (currentPage === 'profile') return <ProfilePage onPageChange={setCurrentPage} showMessage={showMessage} />;
     if (currentPage === 'transactions') return <TransactionsPage onPageChange={setCurrentPage} showMessage={showMessage} />;
     if (currentPage === 'budgets') return <BudgetPage onPageChange={setCurrentPage} showMessage={showMessage} />;
+    if (currentPage === 'categories') return <CategoriesPage onPageChange={setCurrentPage} showMessage={showMessage} />;
     return <RegisterPage onPageChange={setCurrentPage} showMessage={showMessage} />;
   };
 
@@ -130,6 +132,13 @@ function Navbar({ onPageChange, showMessage }) {
                 >
                   Anggaran
                 </button>
+
+                <button
+                  onClick={() => onPageChange('categories')}
+                  className={`py-4 px-2 font-semibold transition duration-300`}
+                >
+                  Kategori
+                </button>
               </div>
             </div>
 
@@ -165,7 +174,6 @@ function Navbar({ onPageChange, showMessage }) {
   );
 }
 
-
 // ========================
 // Komponen Halaman Registrasi
 // ========================
@@ -174,11 +182,32 @@ function RegisterPage({ onPageChange, showMessage }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false); // State baru untuk melihat kata sandi
+  const [emailError, setEmailError] = useState('');
 
   const API_URL = 'http://localhost:3001';
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  const validateEmail = (email) => {
+    if (!emailRegex.test(email)) {
+      setEmailError('Format email tidak valid.');
+    } else {
+      setEmailError('');
+    }
+  };
+
+  const handleEmailChange = (e) => {
+    const value = e.target.value;
+    setEmail(value);
+    validateEmail(value);
+  };
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    if (emailError) {
+      showMessage(emailError);
+      return;
+    }
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/api/auth/register`, {
@@ -221,24 +250,34 @@ function RegisterPage({ onPageChange, showMessage }) {
             type="email"
             className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={handleEmailChange}
             required
           />
+          {emailError && <p className="mt-1 text-sm text-red-500">{emailError}</p>}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700">Kata Sandi</label>
-          <input
-            type="password"
-            className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+          <div className="relative mt-1">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm pr-10"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5 text-gray-500"
+            >
+              {showPassword ? '👁️' : '🔒'}
+            </button>
+          </div>
         </div>
         <div>
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || emailError}
             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
           >
             {loading ? 'Mendaftar...' : 'Daftar'}
@@ -265,10 +304,32 @@ function LoginPage({ onPageChange, showMessage }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [emailError, setEmailError] = useState('');
+
   const API_URL = 'http://localhost:3001';
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  const validateEmail = (email) => {
+    if (!emailRegex.test(email)) {
+      setEmailError('Format email tidak valid.');
+    } else {
+      setEmailError('');
+    }
+  };
+
+  const handleEmailChange = (e) => {
+    const value = e.target.value;
+    setEmail(value);
+    validateEmail(value);
+  };
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (emailError) {
+      showMessage(emailError);
+      return;
+    }
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/api/auth/login`, {
@@ -302,24 +363,34 @@ function LoginPage({ onPageChange, showMessage }) {
             type="email"
             className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={handleEmailChange}
             required
           />
+          {emailError && <p className="mt-1 text-sm text-red-500">{emailError}</p>}
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700">Kata Sandi</label>
-          <input
-            type="password"
-            className="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+          <div className="relative mt-1">
+            <input
+              type={showPassword ? 'text' : 'password'}
+              className="block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm pr-10"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5 text-gray-500"
+            >
+              {showPassword ? '👁️' : '🔒'}
+            </button>
+          </div>
         </div>
         <div>
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || emailError}
             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
           >
             {loading ? 'Memuat...' : 'Masuk'}
@@ -346,37 +417,101 @@ function ProfilePage({ onPageChange, showMessage }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [newUsername, setNewUsername] = useState('');
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showOldPassword, setShowOldPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const API_URL = 'http://localhost:3001';
   const token = localStorage.getItem('token');
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const response = await fetch(`${API_URL}/api/auth/profile`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          },
-        });
-        if (!response.ok) {
-          throw new Error('Gagal mengambil data profil.');
-        }
-        const data = await response.json();
-        setUser(data);
-        setError(null);
-      } catch (err) {
-        console.error('Error fetching profile:', err);
-        setError('Gagal memuat data profil. Silakan coba masuk kembali.');
-      } finally {
-        setLoading(false);
+  const fetchProfile = async () => {
+    try {
+      const response = await fetch(`${API_URL}/api/auth/profile`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Gagal mengambil data profil.');
       }
-    };
+      const data = await response.json();
+      setUser(data);
+      setNewUsername(data.username);
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+      setError('Gagal memuat data profil. Silakan coba masuk kembali.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     if (token) {
       fetchProfile();
     } else {
       onPageChange('login');
     }
   }, [token, onPageChange]);
+
+  const handleUpdateUsername = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch(`${API_URL}/api/auth/profile/username`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ username: newUsername }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        showMessage('Username berhasil diperbarui.');
+        // Perbarui state user secara lokal
+        setUser(prev => ({ ...prev, username: newUsername }));
+        // Mungkin perlu me-reload token jika backend mengembalikannya
+      } else {
+        showMessage(data.message || 'Gagal memperbarui username.');
+      }
+    } catch (err) {
+      console.error('Error updating username:', err);
+      showMessage('Terjadi kesalahan koneksi.');
+    }
+  };
+
+  const handleUpdatePassword = async (e) => {
+    e.preventDefault();
+    if (newPassword !== confirmPassword) {
+      showMessage('Konfirmasi password tidak cocok.');
+      return;
+    }
+    try {
+      const response = await fetch(`${API_URL}/api/auth/profile/password`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ oldPassword, newPassword }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        showMessage('Password berhasil diperbarui.');
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        showMessage(data.message || 'Gagal memperbarui password.');
+      }
+    } catch (err) {
+      console.error('Error updating password:', err);
+      showMessage('Terjadi kesalahan koneksi.');
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -430,6 +565,104 @@ function ProfilePage({ onPageChange, showMessage }) {
           <p className="text-lg font-semibold text-gray-900">{new Date(user.created_at).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>
       </div>
+
+      {/* Form Ganti Username */}
+      <div className="p-4 border rounded-lg shadow-sm">
+        <h3 className="text-lg font-semibold text-gray-700 mb-4">Ganti Username</h3>
+        <form onSubmit={handleUpdateUsername} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Username Baru</label>
+            <input
+              type="text"
+              className="mt-1 block w-full px-3 py-2 border rounded-md shadow-sm"
+              value={newUsername}
+              onChange={(e) => setNewUsername(e.target.value)}
+              required
+            />
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              className="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+            >
+              Simpan Username
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Form Ganti Password */}
+      <div className="p-4 border rounded-lg shadow-sm">
+        <h3 className="text-lg font-semibold text-gray-700 mb-4">Ganti Kata Sandi</h3>
+        <form onSubmit={handleUpdatePassword} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Kata Sandi Lama</label>
+            <div className="relative mt-1">
+              <input
+                type={showOldPassword ? 'text' : 'password'}
+                className="block w-full px-3 py-2 border rounded-md shadow-sm pr-10"
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowOldPassword(!showOldPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5 text-gray-500"
+              >
+                {showOldPassword ? '👁️' : '🔒'}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Kata Sandi Baru</label>
+            <div className="relative mt-1">
+              <input
+                type={showNewPassword ? 'text' : 'password'}
+                className="block w-full px-3 py-2 border rounded-md shadow-sm pr-10"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5 text-gray-500"
+              >
+                {showNewPassword ? '👁️' : '🔒'}
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Konfirmasi Kata Sandi Baru</label>
+            <div className="relative mt-1">
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                className="block w-full px-3 py-2 border rounded-md shadow-sm pr-10"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5 text-gray-500"
+              >
+                {showConfirmPassword ? '👁️' : '🔒'}
+              </button>
+            </div>
+          </div>
+          <div className="flex justify-end">
+            <button
+              type="submit"
+              className="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700"
+            >
+              Simpan Kata Sandi
+            </button>
+          </div>
+        </form>
+      </div>
+      
       <div className="mt-4 text-center">
         <button
           onClick={() => onPageChange('dashboard')}
@@ -621,7 +854,7 @@ function TransactionsPage({ onPageChange, showMessage }) {
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-700 mb-4 text-center">Riwayat Transaksi Lengkap</h2>
-      <div className="p-4 border rounded-lg shadow-sm">
+      <div className="p-4 border rounded-lg shadow-sm max-h-96 overflow-y-auto">
         <ul className="divide-y divide-gray-200">
           {transactions.length > 0 ? (
             transactions.map(t => (
@@ -695,46 +928,27 @@ function DashboardPage({ onPageChange, showMessage }) {
     try {
       const urlParams = new URLSearchParams(dateRange).toString();
       
-      const [transactionsRes, categoriesRes, summaryRes, totalsRes, budgetsRes] = await Promise.all([
+      const [transactionsRes, categoriesRes, summaryRes, totalsRes] = await Promise.all([
         fetch(`${API_URL}/api/transactions?${urlParams}`, { headers: { 'Authorization': `Bearer ${token}` } }),
         fetch(`${API_URL}/api/transactions`, { headers: { 'Authorization': `Bearer ${token}` } }),
         fetch(`${API_URL}/api/transactions/summary/monthly?${urlParams}`, { headers: { 'Authorization': `Bearer ${token}` } }),
         fetch(`${API_URL}/api/transactions/summary/totals?${urlParams}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${API_URL}/api/transactions/budgets`, { headers: { 'Authorization': `Bearer ${token}` } }),
       ]);
       
-      if (!transactionsRes.ok || !categoriesRes.ok || !summaryRes.ok || !totalsRes.ok || !budgetsRes.ok) {
+      if (!transactionsRes.ok || !categoriesRes.ok || !summaryRes.ok || !totalsRes.ok) {
         throw new Error('Failed to fetch data.');
       }
       
       const transactionsData = await transactionsRes.json();
+      const categoriesData = await categoriesRes.json();
       const summaryData = await summaryRes.json();
       const totalsData = await totalsRes.json();
-      const budgetsData = await budgetsRes.json();
       
       setTransactions(transactionsData.transactions);
-      setCategories(transactionsData.categories);
+      setCategories(categoriesData.categories);
       setSummaryData(summaryData);
       setTotalSummary(totalsData);
-      setBudgets(budgetsData);
       setError(null);
-
-      // Fetch spending for each budget
-      const spendingPromises = budgetsData.map(async b => {
-          const spendingRes = await fetch(`${API_URL}/api/transactions/budgets/spending?month=${b.month}&year=${b.year}&categoryId=${b.category_id}`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-          });
-          const spendingData = await spendingRes.json();
-          return { id: b.id, total_spent: spendingData.total_spent };
-      });
-      
-      const spendingResults = await Promise.all(spendingPromises);
-      const spendingMap = spendingResults.reduce((acc, curr) => {
-          acc[curr.id] = parseFloat(curr.total_spent);
-          return acc;
-      }, {});
-
-      setSpending(spendingMap);
 
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -1066,14 +1280,14 @@ function DashboardPage({ onPageChange, showMessage }) {
             )}
             <button
               type="submit"
-              className="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
             >
               {editingId ? 'Simpan Perubahan' : 'Tambahkan'}
             </button>
           </div>
         </form>
       </div>
-
+      
       {/* Daftar Transaksi */}
       <div className="p-4 border rounded-lg shadow-sm max-h-96 overflow-y-auto">
         <h3 className="text-lg font-semibold text-gray-700 mb-4">Riwayat Transaksi</h3>
@@ -1114,5 +1328,5 @@ function DashboardPage({ onPageChange, showMessage }) {
         </ul>
       </div>
     </div>
-  );
+  )
 }

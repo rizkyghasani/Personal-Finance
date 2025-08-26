@@ -8,6 +8,77 @@ const { sendNotificationEmail } = require('./emailService');
 const router = express.Router();
 
 // ==========================================================
+// Rute untuk Kategori
+// ==========================================================
+
+// Rute untuk mendapatkan semua kategori
+router.get('/categories', authenticateToken, async (req, res) => {
+    try {
+        const categories = await db.query('SELECT * FROM categories ORDER BY name ASC');
+        res.json(categories.rows);
+    } catch (error) {
+        console.error('Error fetching categories:', error.stack);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Rute untuk menambahkan kategori baru
+router.post('/categories', authenticateToken, async (req, res) => {
+    const { name, type } = req.body;
+    try {
+        const result = await db.query(
+            'INSERT INTO categories (name, type) VALUES ($1, $2) RETURNING *',
+            [name, type]
+        );
+        res.status(201).json({ message: 'Kategori berhasil ditambahkan!', category: result.rows[0] });
+    } catch (error) {
+        if (error.code === '23505') {
+            return res.status(409).json({ message: 'Kategori ini sudah ada' });
+        }
+        console.error('Error adding category:', error.stack);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Rute untuk mengupdate kategori
+router.put('/categories/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    const { name, type } = req.body;
+    try {
+        const result = await db.query(
+            'UPDATE categories SET name = $1, type = $2 WHERE id = $3 RETURNING *',
+            [name, type, id]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Kategori tidak ditemukan' });
+        }
+        res.json({ message: 'Kategori berhasil diperbarui!', category: result.rows[0] });
+    } catch (error) {
+        if (error.code === '23505') {
+            return res.status(409).json({ message: 'Nama kategori sudah digunakan' });
+        }
+        console.error('Error updating category:', error.stack);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Rute untuk menghapus kategori
+router.delete('/categories/:id', authenticateToken, async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await db.query('DELETE FROM categories WHERE id = $1 RETURNING id', [id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Kategori tidak ditemukan' });
+        }
+        res.json({ message: 'Kategori berhasil dihapus!' });
+    } catch (error) {
+        console.error('Error deleting category:', error.stack);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+
+// ==========================================================
 // Rute untuk Anggaran (Budgeting)
 // ==========================================================
 
@@ -30,10 +101,10 @@ router.post('/budgets', authenticateToken, async (req, res) => {
             'INSERT INTO budgets (user_id, category_id, amount, month, year) VALUES ($1, $2, $3, $4, $5) RETURNING *',
             [req.user.id, category_id, amount, month, year]
         );
-        res.status(201).json(result.rows[0]);
+        res.status(201).json({ message: 'Anggaran berhasil disimpan!', budget: result.rows[0] });
     } catch (error) {
         if (error.code === '23505') { // Error code for unique constraint violation
-            return res.status(409).json({ message: 'Budget for this category and month already exists' });
+            return res.status(409).json({ message: 'Anggaran untuk kategori dan bulan ini sudah ada' });
         }
         console.error('Error adding budget:', error.stack);
         res.status(500).json({ message: 'Server error' });
@@ -50,9 +121,9 @@ router.put('/budgets/:id', authenticateToken, async (req, res) => {
             [amount, id, req.user.id]
         );
         if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'Budget not found or not authorized' });
+            return res.status(404).json({ message: 'Anggaran tidak ditemukan atau tidak diotorisasi' });
         }
-        res.json(result.rows[0]);
+        res.json({ message: 'Anggaran berhasil diperbarui!', budget: result.rows[0] });
     } catch (error) {
         console.error('Error updating budget:', error.stack);
         res.status(500).json({ message: 'Server error' });
@@ -65,16 +136,33 @@ router.delete('/budgets/:id', authenticateToken, async (req, res) => {
     try {
         const result = await db.query('DELETE FROM budgets WHERE id = $1 AND user_id = $2 RETURNING id', [id, req.user.id]);
         if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'Budget not found or not authorized' });
+            return res.status(404).json({ message: 'Anggaran tidak ditemukan atau tidak diotorisasi' });
         }
-        res.json({ message: 'Budget deleted successfully' });
+        res.json({ message: 'Anggaran berhasil dihapus!' });
     } catch (error) {
         console.error('Error deleting budget:', error.stack);
         res.status(500).json({ message: 'Server error' });
     }
 });
 
-// Rute baru untuk mendapatkan total pengeluaran per kategori untuk suatu bulan
+// Rute untuk mendapatkan detail transaksi berdasarkan kategori, bulan, dan tahun
+router.get('/budgets/details', authenticateToken, async (req, res) => {
+    const { month, year, categoryId } = req.query;
+    try {
+        const transactions = await db.query(
+            `SELECT * FROM transactions 
+             WHERE user_id = $1 AND category_id = $2 AND EXTRACT(MONTH FROM date) = $3 AND EXTRACT(YEAR FROM date) = $4
+             ORDER BY created_at DESC`,
+            [req.user.id, categoryId, month, year]
+        );
+        res.json(transactions.rows);
+    } catch (error) {
+        console.error('Error fetching budget details:', error.stack);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Rute untuk mendapatkan total pengeluaran per kategori untuk suatu bulan
 router.get('/budgets/spending', authenticateToken, async (req, res) => {
     const { month, year, categoryId } = req.query;
     try {
@@ -254,15 +342,13 @@ router.put('/:id', authenticateToken, async (req, res) => {
 router.delete('/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     try {
-        const result = await db.query('DELETE FROM transactions WHERE id = $1 AND user_id = $2 RETURNING id', [id, req.user.id]);
-
+        const result = await db.query('DELETE FROM budgets WHERE id = $1 AND user_id = $2 RETURNING id', [id, req.user.id]);
         if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'Transaction not found or not authorized' });
+            return res.status(404).json({ message: 'Anggaran tidak ditemukan atau tidak diotorisasi' });
         }
-
-        res.json({ message: 'Transaction deleted successfully' });
+        res.json({ message: 'Anggaran berhasil dihapus!' });
     } catch (error) {
-        console.error('Error deleting transaction:', error.stack);
+        console.error('Error deleting budget:', error.stack);
         res.status(500).json({ message: 'Server error' });
     }
 });

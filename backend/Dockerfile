@@ -1,5 +1,5 @@
 # backend/Dockerfile
-FROM node:20
+FROM node:20-alpine
 
 # Set direktori kerja di dalam container
 WORKDIR /app
