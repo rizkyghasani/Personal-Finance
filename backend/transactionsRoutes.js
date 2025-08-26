@@ -74,6 +74,23 @@ router.delete('/budgets/:id', authenticateToken, async (req, res) => {
     }
 });
 
+// Rute baru untuk mendapatkan total pengeluaran per kategori untuk suatu bulan
+router.get('/budgets/spending', authenticateToken, async (req, res) => {
+    const { month, year, categoryId } = req.query;
+    try {
+        const result = await db.query(
+            `SELECT SUM(amount) AS total_spent 
+             FROM transactions 
+             WHERE user_id = $1 AND category_id = $2 AND EXTRACT(MONTH FROM date) = $3 AND EXTRACT(YEAR FROM date) = $4`,
+            [req.user.id, categoryId, month, year]
+        );
+        res.json({ total_spent: result.rows[0].total_spent || 0 });
+    } catch (error) {
+        console.error('Error fetching budget spending:', error.stack);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
 
 // ==========================================================
 // Rute untuk Transaksi (Sudah ada)

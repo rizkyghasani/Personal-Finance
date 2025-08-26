@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
-import { useLocation } from 'react-router-dom';
+import BudgetPage from './BudgetPage';
 
 ChartJS.register(
   CategoryScale,
@@ -34,6 +34,7 @@ export default function App() {
     if (currentPage === 'dashboard') return <DashboardPage onPageChange={setCurrentPage} showMessage={showMessage} />;
     if (currentPage === 'profile') return <ProfilePage onPageChange={setCurrentPage} showMessage={showMessage} />;
     if (currentPage === 'transactions') return <TransactionsPage onPageChange={setCurrentPage} showMessage={showMessage} />;
+    if (currentPage === 'budgets') return <BudgetPage onPageChange={setCurrentPage} showMessage={showMessage} />;
     return <RegisterPage onPageChange={setCurrentPage} showMessage={showMessage} />;
   };
 
@@ -96,21 +97,42 @@ function Navbar({ onPageChange, showMessage }) {
     <nav className="bg-white shadow-lg">
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex justify-between">
-          <div className="flex space-x-7">
-            <div>
-              <button onClick={() => onPageChange('dashboard')} className="flex items-center py-4 px-2">
-                <span className="font-semibold text-gray-500 text-lg">FinApp</span>
-              </button>
+          <div className="flex justify-between items-center px-4 md:px-8 shadow-md bg-white">
+              {/* Logo */}
+              <div>
+                <button 
+                  onClick={() => onPageChange('dashboard')} 
+                  className="flex items-center py-4 px-2"
+                >
+                  <span className="font-bold text-indigo-600 text-xl">FinApp</span>
+                </button>
+              </div>
+
+              {/* Menu */}
+              <div className="hidden md:flex items-center space-x-4">
+                <button
+                  onClick={() => onPageChange('dashboard')}
+                  className={`py-4 px-2 font-semibold transition duration-300`}
+                >
+                  Dashboard
+                </button>
+
+                <button
+                  onClick={() => onPageChange('transactions')}
+                  className={`py-4 px-2 font-semibold transition duration-300`}
+                >
+                  Riwayat Transaksi
+                </button>
+
+                <button
+                  onClick={() => onPageChange('budgets')}
+                  className={`py-4 px-2 font-semibold transition duration-300`}
+                >
+                  Anggaran
+                </button>
+              </div>
             </div>
-            <div className="hidden md:flex items-center space-x-1">
-              <button onClick={() => onPageChange('dashboard')} className="py-4 px-2 text-gray-500 font-semibold hover:text-indigo-500 transition duration-300">
-                Dashboard
-              </button>
-              <button onClick={() => onPageChange('transactions')} className="py-4 px-2 text-gray-500 font-semibold hover:text-indigo-500 transition duration-300">
-                Riwayat Transaksi
-              </button>
-            </div>
-          </div>
+
           <div className="hidden md:flex items-center space-x-3">
             {user && (
               <div className="relative">
@@ -425,22 +447,36 @@ function ProfilePage({ onPageChange, showMessage }) {
 // ========================
 function TransactionsPage({ onPageChange, showMessage }) {
   const [transactions, setTransactions] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [editingId, setEditingId] = useState(null);
   const API_URL = 'http://localhost:3001';
   const token = localStorage.getItem('token');
+
+  const today = new Date().toISOString().split('T')[0];
+  const [form, setForm] = useState({
+    amount: '',
+    type: 'expense',
+    categoryId: '',
+    description: '',
+    date: today,
+  });
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/transactions`, {
-        headers: { 'Authorization': `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        throw new Error('Gagal memuat data transaksi.');
+      const [transactionsRes, categoriesRes] = await Promise.all([
+        fetch(`${API_URL}/api/transactions`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_URL}/api/transactions`, { headers: { 'Authorization': `Bearer ${token}` } }),
+      ]);
+      if (!transactionsRes.ok || !categoriesRes.ok) {
+        throw new Error('Gagal memuat data.');
       }
-      const data = await response.json();
-      setTransactions(data.transactions);
+      const transactionsData = await transactionsRes.json();
+      const categoriesData = await categoriesRes.json();
+      setTransactions(transactionsData.transactions);
+      setCategories(categoriesData.categories);
       setError(null);
     } catch (err) {
       console.error('Error fetching transactions:', err);
@@ -453,6 +489,110 @@ function TransactionsPage({ onPageChange, showMessage }) {
   useEffect(() => {
     fetchData();
   }, [token]);
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setForm(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleEditClick = (transaction) => {
+    setEditingId(transaction.id);
+    setForm({
+      amount: transaction.amount,
+      type: transaction.type,
+      categoryId: categories.find(c => c.name === transaction.category_name)?.id,
+      description: transaction.description,
+      date: new Date(transaction.date).toISOString().split('T')[0],
+    });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setForm({
+      amount: '',
+      type: 'expense',
+      categoryId: '',
+      description: '',
+      date: today,
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const payload = {
+      ...form,
+      amount: parseFloat(form.amount),
+      category_id: parseInt(form.categoryId, 10),
+    };
+
+    try {
+      let response;
+      if (editingId) {
+        // Edit transaction
+        response = await fetch(`${API_URL}/api/transactions/${editingId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        // Add new transaction
+        response = await fetch(`${API_URL}/api/transactions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to save transaction.');
+      }
+      
+      showMessage('Transaksi berhasil disimpan!');
+      setEditingId(null);
+      setForm({
+        amount: '',
+        type: 'expense',
+        categoryId: '',
+        description: '',
+        date: today,
+      });
+      fetchData(); // Refresh all data
+    } catch (err) {
+      console.error('Error saving transaction:', err);
+      showMessage('Gagal menyimpan transaksi. Coba lagi.');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
+        return;
+    }
+    
+    try {
+      const response = await fetch(`${API_URL}/api/transactions/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete transaction.');
+      }
+
+      showMessage('Transaksi berhasil dihapus!');
+      fetchData(); // Refresh all data
+    } catch (err) {
+      console.error('Error deleting transaction:', err);
+      showMessage('Gagal menghapus transaksi. Coba lagi.');
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -522,6 +662,8 @@ function TransactionsPage({ onPageChange, showMessage }) {
 function DashboardPage({ onPageChange, showMessage }) {
   const [transactions, setTransactions] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [budgets, setBudgets] = useState([]);
+  const [spending, setSpending] = useState({});
   const [summaryData, setSummaryData] = useState([]);
   const [totalSummary, setTotalSummary] = useState({ overall_income: 0, overall_expense: 0 });
   const [loading, setLoading] = useState(true);
@@ -553,26 +695,46 @@ function DashboardPage({ onPageChange, showMessage }) {
     try {
       const urlParams = new URLSearchParams(dateRange).toString();
       
-      const [transactionsRes, categoriesRes, summaryRes, totalsRes] = await Promise.all([
+      const [transactionsRes, categoriesRes, summaryRes, totalsRes, budgetsRes] = await Promise.all([
         fetch(`${API_URL}/api/transactions?${urlParams}`, { headers: { 'Authorization': `Bearer ${token}` } }),
         fetch(`${API_URL}/api/transactions`, { headers: { 'Authorization': `Bearer ${token}` } }),
         fetch(`${API_URL}/api/transactions/summary/monthly?${urlParams}`, { headers: { 'Authorization': `Bearer ${token}` } }),
         fetch(`${API_URL}/api/transactions/summary/totals?${urlParams}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_URL}/api/transactions/budgets`, { headers: { 'Authorization': `Bearer ${token}` } }),
       ]);
       
-      if (!transactionsRes.ok || !categoriesRes.ok || !summaryRes.ok || !totalsRes.ok) {
+      if (!transactionsRes.ok || !categoriesRes.ok || !summaryRes.ok || !totalsRes.ok || !budgetsRes.ok) {
         throw new Error('Failed to fetch data.');
       }
       
       const transactionsData = await transactionsRes.json();
       const summaryData = await summaryRes.json();
       const totalsData = await totalsRes.json();
+      const budgetsData = await budgetsRes.json();
       
       setTransactions(transactionsData.transactions);
       setCategories(transactionsData.categories);
       setSummaryData(summaryData);
       setTotalSummary(totalsData);
+      setBudgets(budgetsData);
       setError(null);
+
+      // Fetch spending for each budget
+      const spendingPromises = budgetsData.map(async b => {
+          const spendingRes = await fetch(`${API_URL}/api/transactions/budgets/spending?month=${b.month}&year=${b.year}&categoryId=${b.category_id}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+          });
+          const spendingData = await spendingRes.json();
+          return { id: b.id, total_spent: spendingData.total_spent };
+      });
+      
+      const spendingResults = await Promise.all(spendingPromises);
+      const spendingMap = spendingResults.reduce((acc, curr) => {
+          acc[curr.id] = parseFloat(curr.total_spent);
+          return acc;
+      }, {});
+
+      setSpending(spendingMap);
 
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -751,7 +913,7 @@ function DashboardPage({ onPageChange, showMessage }) {
     <div className="space-y-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-700">Dashboard</h2>
-        {/* <div className="flex space-x-4">
+        <div className="flex space-x-4">
           <button
             onClick={() => onPageChange('profile')}
             className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
@@ -764,7 +926,7 @@ function DashboardPage({ onPageChange, showMessage }) {
           >
             Logout
           </button>
-        </div> */}
+        </div>
       </div>
 
       {/* Bagian Grafik dan Summary */}
