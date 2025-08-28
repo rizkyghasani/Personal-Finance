@@ -69,7 +69,7 @@ export default function App() {
 function Navbar({ onPageChange, showMessage }) {
   const [user, setUser] = useState(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const API_URL = "http://backend:5000/api";
+  const API_URL = "http://103.139.193.146:3001/api";
   const token = localStorage.getItem('token');
 
   useEffect(() => {
@@ -214,7 +214,7 @@ function RegisterPage({ onPageChange, showMessage }) {
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
 
-  const API_URL = "http://backend:5000/api";
+  const API_URL = "http://103.139.193.146:3001/api";
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const validateEmail = (email) => {
@@ -336,7 +336,7 @@ function LoginPage({ onPageChange, showMessage }) {
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
 
-  const API_URL = "http://backend:5000/api";
+  const API_URL = "http://103.139.193.146:3001/api";
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const validateEmail = (email) => {
@@ -453,7 +453,7 @@ function ProfilePage({ onPageChange, showMessage }) {
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const API_URL = "http://backend:5000/api";
+  const API_URL = "http://103.139.193.146:3001/api";
   const token = localStorage.getItem('token');
 
   useEffect(() => {
@@ -713,7 +713,7 @@ function TransactionsPage({ onPageChange, showMessage }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingId, setEditingId] = useState(null);
-  const API_URL = "http://backend:5000/api";
+  const API_URL = "http://103.139.193.146:3001/api";
   const token = localStorage.getItem('token');
 
   const today = new Date().toISOString().split('T')[0];
@@ -948,7 +948,7 @@ function DashboardPage({ onPageChange, showMessage }) {
     date: today,
   });
 
-  const API_URL = "http://backend:5000/api";
+  const API_URL = "http://103.139.193.146:3001/api";
   const token = localStorage.getItem('token');
 
   // Fetch data from API
