@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
 import BudgetPage from './BudgetPage';
-import CategoriesPage from './CategoriesPage';
+import CategoriesPage from './CategoriesPage'
 
 ChartJS.register(
   CategoryScale,
@@ -15,7 +15,7 @@ ChartJS.register(
 
 // Main App component
 export default function App() {
-  const [currentPage, setCurrentPage] = useState('register');
+  const [currentPage, setCurrentPage] = useState('landing');
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -31,6 +31,7 @@ export default function App() {
   };
 
   const renderPage = () => {
+    if (currentPage === 'landing') return <LandingPage onPageChange={setCurrentPage} />;
     if (currentPage === 'login') return <LoginPage onPageChange={setCurrentPage} showMessage={showMessage} />;
     if (currentPage === 'dashboard') return <DashboardPage onPageChange={setCurrentPage} showMessage={showMessage} />;
     if (currentPage === 'profile') return <ProfilePage onPageChange={setCurrentPage} showMessage={showMessage} />;
@@ -175,6 +176,34 @@ function Navbar({ onPageChange, showMessage }) {
 }
 
 // ========================
+// Komponen Halaman Landing Page
+// ========================
+function LandingPage({ onPageChange }) {
+  return (
+    <div className="text-center space-y-8">
+      <h2 className="text-4xl font-extrabold text-gray-800">Welcome to ur.FinancialApp</h2>
+      <p className="text-xl text-gray-600 max-w-lg mx-auto">
+        Your personal finance manager. Track your income, expenses, and manage your budget with ease.
+      </p>
+      <div className="flex justify-center space-x-4">
+        <button
+          onClick={() => onPageChange('register')}
+          className="py-3 px-6 rounded-lg text-lg font-semibold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors duration-300"
+        >
+          Get Started
+        </button>
+        <button
+          onClick={() => onPageChange('login')}
+          className="py-3 px-6 rounded-lg text-lg font-semibold text-indigo-600 border-2 border-indigo-600 hover:bg-indigo-50 transition-colors duration-300"
+        >
+          Login
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ========================
 // Komponen Halaman Registrasi
 // ========================
 function RegisterPage({ onPageChange, showMessage }) {
@@ -182,7 +211,7 @@ function RegisterPage({ onPageChange, showMessage }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false); // State baru untuk melihat kata sandi
+  const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
 
   const API_URL = 'http://localhost:3001';
@@ -427,29 +456,29 @@ function ProfilePage({ onPageChange, showMessage }) {
   const API_URL = 'http://localhost:3001';
   const token = localStorage.getItem('token');
 
-  const fetchProfile = async () => {
-    try {
-      const response = await fetch(`${API_URL}/api/auth/profile`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-      });
-      if (!response.ok) {
-        throw new Error('Gagal mengambil data profil.');
-      }
-      const data = await response.json();
-      setUser(data);
-      setNewUsername(data.username);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching profile:', err);
-      setError('Gagal memuat data profil. Silakan coba masuk kembali.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/auth/profile`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
+        });
+        if (!response.ok) {
+          throw new Error('Gagal mengambil data profil.');
+        }
+        const data = await response.json();
+        setUser(data);
+        setNewUsername(data.username);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching profile:', err);
+        setError('Gagal memuat data profil. Silakan coba masuk kembali.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     if (token) {
       fetchProfile();
     } else {
@@ -610,7 +639,7 @@ function ProfilePage({ onPageChange, showMessage }) {
                 onClick={() => setShowOldPassword(!showOldPassword)}
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5 text-gray-500"
               >
-                {showOldPassword ? '👁️' : '🔒'}
+                {showOldPassword ? '👁️' : '�'}
               </button>
             </div>
           </div>
@@ -854,7 +883,7 @@ function TransactionsPage({ onPageChange, showMessage }) {
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-700 mb-4 text-center">Riwayat Transaksi Lengkap</h2>
-      <div className="p-4 border rounded-lg shadow-sm max-h-96 overflow-y-auto">
+      <div className="p-4 border rounded-lg shadow-sm">
         <ul className="divide-y divide-gray-200">
           {transactions.length > 0 ? (
             transactions.map(t => (
@@ -936,7 +965,7 @@ function DashboardPage({ onPageChange, showMessage }) {
       ]);
       
       if (!transactionsRes.ok || !categoriesRes.ok || !summaryRes.ok || !totalsRes.ok) {
-        throw new Error('Failed to fetch data.');
+        throw new Error('Gagal memuat data.');
       }
       
       const transactionsData = await transactionsRes.json();
@@ -1287,7 +1316,7 @@ function DashboardPage({ onPageChange, showMessage }) {
           </div>
         </form>
       </div>
-      
+
       {/* Daftar Transaksi */}
       <div className="p-4 border rounded-lg shadow-sm max-h-96 overflow-y-auto">
         <h3 className="text-lg font-semibold text-gray-700 mb-4">Riwayat Transaksi</h3>

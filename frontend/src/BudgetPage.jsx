@@ -18,7 +18,7 @@ export default function BudgetPage({ onPageChange, showMessage }) {
   const [spending, setSpending] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [editingId, setEditingId] = useState(null);
+  const [editingId, setEditingId] = useState(null); // State baru untuk mode edit
   const [selectedBudget, setSelectedBudget] = useState(null); // State untuk melihat detail anggaran
   const [budgetDetails, setBudgetDetails] = useState([]); // State untuk detail transaksi anggaran
   const [detailsLoading, setDetailsLoading] = useState(false);
@@ -96,8 +96,10 @@ export default function BudgetPage({ onPageChange, showMessage }) {
             month: parseInt(form.month, 10),
             year: parseInt(form.year, 10),
         };
+        
         let response;
         if (editingId) {
+            // Edit budget
             response = await fetch(`${API_URL}/api/transactions/budgets/${editingId}`, {
                 method: 'PUT',
                 headers: {
@@ -107,6 +109,7 @@ export default function BudgetPage({ onPageChange, showMessage }) {
                 body: JSON.stringify(payload),
             });
         } else {
+            // Add new budget
             response = await fetch(`${API_URL}/api/transactions/budgets`, {
                 method: 'POST',
                 headers: {
@@ -312,61 +315,63 @@ export default function BudgetPage({ onPageChange, showMessage }) {
       {/* Daftar Anggaran */}
       <div className="p-4 border rounded-lg shadow-sm">
         <h3 className="text-lg font-semibold text-gray-700 mb-4">Anggaran Anda</h3>
-        <ul className="divide-y divide-gray-200">
-          {budgets.length > 0 ? (
-            budgets.map(b => {
-              const category = categories.find(c => c.id === b.category_id);
-              const spent = spending[b.id] || 0;
-              const remaining = b.amount - spent;
-              const progress = (spent / b.amount) * 100;
-              const progressBarColor = progress > 100 ? 'bg-red-500' : 'bg-green-500';
+        <div className="max-h-96 overflow-y-auto">
+          <ul className="divide-y divide-gray-200">
+            {budgets.length > 0 ? (
+              budgets.map(b => {
+                const category = categories.find(c => c.id === b.category_id);
+                const spent = spending[b.id] || 0;
+                const remaining = b.amount - spent;
+                const progress = (spent / b.amount) * 100;
+                const progressBarColor = progress > 100 ? 'bg-red-500' : 'bg-green-500';
 
-              return (
-                <li key={b.id} className="py-4">
-                  <div className="flex justify-between items-center">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">
-                          {category ? category.name : 'Unknown Category'} - {b.month}/{b.year}
-                      </p>
-                      <div className="mt-2 text-xs">
-                          <p>Anggaran: Rp {parseFloat(b.amount).toLocaleString('id-ID')}</p>
-                          <p>Terpakai: Rp {parseFloat(spent).toLocaleString('id-ID')}</p>
-                          <p className={`font-semibold ${remaining < 0 ? 'text-red-500' : 'text-gray-600'}`}>
-                            Sisa: Rp {parseFloat(remaining).toLocaleString('id-ID')}
-                          </p>
+                return (
+                  <li key={b.id} className="py-4">
+                    <div className="flex justify-between items-center">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">
+                            {category ? category.name : 'Unknown Category'} - {b.month}/{b.year}
+                        </p>
+                        <div className="mt-2 text-xs">
+                            <p>Anggaran: Rp {parseFloat(b.amount).toLocaleString('id-ID')}</p>
+                            <p>Terpakai: Rp {parseFloat(spent).toLocaleString('id-ID')}</p>
+                            <p className={`font-semibold ${remaining < 0 ? 'text-red-500' : 'text-gray-600'}`}>
+                              Sisa: Rp {parseFloat(remaining).toLocaleString('id-ID')}
+                            </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                          <div className="w-32 bg-gray-200 rounded-full h-2">
+                              <div className={`h-2 rounded-full ${progressBarColor}`} style={{ width: `${Math.min(progress, 100)}%` }}></div>
+                          </div>
+                          <button
+                            onClick={() => handleShowDetails(b)}
+                            className="text-xs text-indigo-600 hover:text-indigo-900"
+                          >
+                            Lihat Detail
+                          </button>
+                          <button
+                            onClick={() => handleEditClick(b)}
+                            className="text-xs text-indigo-600 hover:text-indigo-900"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(b.id)}
+                            className="text-xs text-red-600 hover:text-red-900"
+                          >
+                            Hapus
+                          </button>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                        <div className="w-32 bg-gray-200 rounded-full h-2">
-                            <div className={`h-2 rounded-full ${progressBarColor}`} style={{ width: `${Math.min(progress, 100)}%` }}></div>
-                        </div>
-                        <button
-                          onClick={() => handleShowDetails(b)}
-                          className="text-xs text-indigo-600 hover:text-indigo-900"
-                        >
-                          Lihat Detail
-                        </button>
-                        <button
-                          onClick={() => handleEditClick(b)}
-                          className="text-xs text-indigo-600 hover:text-indigo-900"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(b.id)}
-                          className="text-xs text-red-600 hover:text-red-900"
-                        >
-                          Hapus
-                        </button>
-                    </div>
-                  </div>
-                </li>
-              );
-            })
-          ) : (
-            <p className="text-center text-gray-500 py-4">Belum ada anggaran yang ditetapkan.</p>
-          )}
-        </ul>
+                  </li>
+                );
+              })
+            ) : (
+              <p className="text-center text-gray-500 py-4">Belum ada anggaran yang ditetapkan.</p>
+            )}
+          </ul>
+        </div>
       </div>
       <div className="mt-4 text-center">
         <button
