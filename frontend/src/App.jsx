@@ -75,7 +75,7 @@ function Navbar({ onPageChange, showMessage }) {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/auth/profile`, {
+        const response = await fetch(`${API_URL}/auth/profile`, {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         if (response.ok) {
@@ -239,7 +239,7 @@ function RegisterPage({ onPageChange, showMessage }) {
     }
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/auth/register`, {
+      const response = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, email, password }),
@@ -361,7 +361,7 @@ function LoginPage({ onPageChange, showMessage }) {
     }
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -459,7 +459,7 @@ function ProfilePage({ onPageChange, showMessage }) {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/auth/profile`, {
+        const response = await fetch(`${API_URL}/auth/profile`, {
           headers: {
             'Authorization': `Bearer ${token}`
           },
@@ -489,7 +489,7 @@ function ProfilePage({ onPageChange, showMessage }) {
   const handleUpdateUsername = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${API_URL}/api/auth/profile/username`, {
+      const response = await fetch(`${API_URL}/auth/profile/username`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -519,7 +519,7 @@ function ProfilePage({ onPageChange, showMessage }) {
       return;
     }
     try {
-      const response = await fetch(`${API_URL}/api/auth/profile/password`, {
+      const response = await fetch(`${API_URL}/auth/profile/password`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -729,8 +729,8 @@ function TransactionsPage({ onPageChange, showMessage }) {
     setLoading(true);
     try {
       const [transactionsRes, categoriesRes] = await Promise.all([
-        fetch(`${API_URL}/api/transactions`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${API_URL}/api/transactions`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_URL}/transactions`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_URL}/transactions`, { headers: { 'Authorization': `Bearer ${token}` } }),
       ]);
       if (!transactionsRes.ok || !categoriesRes.ok) {
         throw new Error('Gagal memuat data.');
@@ -791,7 +791,7 @@ function TransactionsPage({ onPageChange, showMessage }) {
       let response;
       if (editingId) {
         // Edit transaction
-        response = await fetch(`${API_URL}/api/transactions/${editingId}`, {
+        response = await fetch(`${API_URL}/transactions/${editingId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -801,7 +801,7 @@ function TransactionsPage({ onPageChange, showMessage }) {
         });
       } else {
         // Add new transaction
-        response = await fetch(`${API_URL}/api/transactions`, {
+        response = await fetch(`${API_URL}/transactions`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -837,7 +837,7 @@ function TransactionsPage({ onPageChange, showMessage }) {
     }
     
     try {
-      const response = await fetch(`${API_URL}/api/transactions/${id}`, {
+      const response = await fetch(`${API_URL}/transactions/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -958,11 +958,11 @@ function DashboardPage({ onPageChange, showMessage }) {
       const urlParams = new URLSearchParams(dateRange).toString();
       
       const [transactionsRes, categoriesRes, summaryRes, totalsRes] = await Promise.all([
-        fetch(`${API_URL}/api/transactions?${urlParams}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${API_URL}/api/transactions`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${API_URL}/api/transactions/summary/monthly?${urlParams}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${API_URL}/api/transactions/summary/totals?${urlParams}`, { headers: { 'Authorization': `Bearer ${token}` } }),
-      ]);
+        fetch(`${API_URL}/transactions?${urlParams}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_URL}/transactions`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_URL}/transactions/summary/monthly?${urlParams}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${API_URL}/transactions/summary/totals?${urlParams}`, { headers: { 'Authorization': `Bearer ${token}` } }),
+      ]);      
       
       if (!transactionsRes.ok || !categoriesRes.ok || !summaryRes.ok || !totalsRes.ok) {
         throw new Error('Gagal memuat data.');
@@ -1030,7 +1030,7 @@ function DashboardPage({ onPageChange, showMessage }) {
       let response;
       if (editingId) {
         // Edit transaction
-        response = await fetch(`${API_URL}/api/transactions/${editingId}`, {
+        response = await fetch(`${API_URL}/transactions/${editingId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -1040,7 +1040,7 @@ function DashboardPage({ onPageChange, showMessage }) {
         });
       } else {
         // Add new transaction
-        response = await fetch(`${API_URL}/api/transactions`, {
+        response = await fetch(`${API_URL}/transactions`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1076,7 +1076,7 @@ function DashboardPage({ onPageChange, showMessage }) {
     }
     
     try {
-      const response = await fetch(`${API_URL}/api/transactions/${id}`, {
+      const response = await fetch(`${API_URL}/transactions/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
