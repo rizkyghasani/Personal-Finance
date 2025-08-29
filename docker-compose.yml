@@ -26,21 +26,18 @@ services:
     # Menghapus duplikasi variabel yang sudah ada di .env
 
   frontend:
-    # Mengubah konteks build ke root direktori
     build:
       context: ./frontend
-      dockerfile: ./frontend/Dockerfile
+      dockerfile: Dockerfile
     container_name: frontend
     ports:
       - "3002:3000"
     depends_on:
       - backend
-    # Menambahkan `env_file` untuk membaca variabel lingkungan dari root
     env_file:
       - ./.env.production
     volumes:
-      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf
-    # Variabel `VITE_API_URL` tidak lagi dibutuhkan di sini karena sudah dimuat dari file .env.production
-
+      - ./frontend/nginx/default.conf:/etc/nginx/conf.d/default.conf
+      
 volumes:
   postgres_data:
