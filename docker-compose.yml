@@ -28,7 +28,7 @@ services:
   frontend:
     # Mengubah konteks build ke root direktori
     build:
-      context: .
+      context: ./frontend
       dockerfile: ./frontend/Dockerfile
     container_name: frontend
     ports:
