@@ -90,7 +90,7 @@ function Navbar({ onPageChange, showMessage }) {
     const fetchProfile = async () => {
       if (!token) return;
       try {
-        const response = await fetch(`${API_URL}/api/auth/profile`, {
+        const response = await fetch(`${API_URL}/auth/profile`, {
           headers: { 'Authorization': `Bearer ${token}` },
         });
         if (response.ok) {
@@ -240,7 +240,7 @@ function RegisterPage({ onPageChange, showMessage }) {
     }
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/auth/register`, {
+      const response = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, email, password }),
@@ -361,7 +361,7 @@ function LoginPage({ onPageChange, showMessage }) {
     }
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -458,7 +458,7 @@ function ProfilePage({ onPageChange, showMessage }) {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/auth/profile`, {
+        const response = await fetch(`${API_URL}/auth/profile`, {
           headers: {
             'Authorization': `Bearer ${token}`
           },
@@ -488,7 +488,7 @@ function ProfilePage({ onPageChange, showMessage }) {
   const handleUpdateUsername = async (e) => {
     e.preventDefault();
     try {
-      const response = await fetch(`${API_URL}/api/auth/profile/username`, {
+      const response = await fetch(`${API_URL}/auth/profile/username`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -517,7 +517,7 @@ function ProfilePage({ onPageChange, showMessage }) {
       return;
     }
     try {
-      const response = await fetch(`${API_URL}/api/auth/profile/password`, {
+      const response = await fetch(`${API_URL}/auth/profile/password`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -963,7 +963,7 @@ function DashboardPage({ onPageChange, showMessage }) {
     // A modal UI would be needed for confirmation.
     
     try {
-      const response = await fetch(`${API_URL}/api/transactions/${id}`, {
+      const response = await fetch(`${API_URL}/transactions/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
