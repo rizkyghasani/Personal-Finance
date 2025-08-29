@@ -18,29 +18,29 @@ services:
     container_name: backend
     ports:
       - "3001:5000"
-    environment:
-      PGUSER: postgres
-      PGHOST: db
-      PGDATABASE: personal_finance
-      PGPASSWORD: "080425"
-      PGPORT: 5432
-      JWT_SECRET: supersecretjwtkey
     depends_on:
       - db
+    # Mengarahkan Docker untuk memuat file .env dari dalam folder backend
+    env_file:
+      - ./backend/.env
+    # Menghapus duplikasi variabel yang sudah ada di .env
 
   frontend:
+    # Mengubah konteks build ke root direktori
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./frontend/Dockerfile
     container_name: frontend
     ports:
       - "3002:3000"
-    environment:
-      VITE_API_URL: http://localhost:3001
     depends_on:
       - backend
+    # Menambahkan `env_file` untuk membaca variabel lingkungan dari root
+    env_file:
+      - ./.env.production
     volumes:
-      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf # Menambahkan volume untuk konfigurasi Nginx
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf
+    # Variabel `VITE_API_URL` tidak lagi dibutuhkan di sini karena sudah dimuat dari file .env.production
 
 volumes:
   postgres_data:
