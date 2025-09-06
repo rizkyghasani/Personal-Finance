@@ -13,6 +13,8 @@ ChartJS.register(
   Legend
 );
 
+const API_URL = 'http://103.139.193.146';
+
 // Main App component
 export default function App() {
   const [currentPage, setCurrentPage] = useState('landing');
@@ -69,7 +71,6 @@ export default function App() {
 function Navbar({ onPageChange, showMessage }) {
   const [user, setUser] = useState(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const API_URL = 'http://localhost:3001';
   const token = localStorage.getItem('token');
 
   useEffect(() => {
@@ -214,7 +215,6 @@ function RegisterPage({ onPageChange, showMessage }) {
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
 
-  const API_URL = 'http://localhost:3001';
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const validateEmail = (email) => {
@@ -336,7 +336,6 @@ function LoginPage({ onPageChange, showMessage }) {
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
 
-  const API_URL = 'http://localhost:3001';
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const validateEmail = (email) => {
@@ -453,7 +452,6 @@ function ProfilePage({ onPageChange, showMessage }) {
   const [showOldPassword, setShowOldPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const API_URL = 'http://localhost:3001';
   const token = localStorage.getItem('token');
 
   useEffect(() => {
@@ -639,7 +637,7 @@ function ProfilePage({ onPageChange, showMessage }) {
                 onClick={() => setShowOldPassword(!showOldPassword)}
                 className="absolute inset-y-0 right-0 pr-3 flex items-center text-sm leading-5 text-gray-500"
               >
-                {showOldPassword ? '👁️' : '�'}
+                {showOldPassword ? '👁️' : ''}
               </button>
             </div>
           </div>
@@ -713,7 +711,6 @@ function TransactionsPage({ onPageChange, showMessage }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingId, setEditingId] = useState(null);
-  const API_URL = 'http://localhost:3001';
   const token = localStorage.getItem('token');
 
   const today = new Date().toISOString().split('T')[0];
@@ -948,7 +945,6 @@ function DashboardPage({ onPageChange, showMessage }) {
     date: today,
   });
 
-  const API_URL = 'http://localhost:3001';
   const token = localStorage.getItem('token');
 
   // Fetch data from API
