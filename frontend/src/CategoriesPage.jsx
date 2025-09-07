@@ -14,13 +14,13 @@ export default function CategoriesPage({ onPageChange, showMessage }) {
     type: 'expense',
   });
   
-  const API_URL = 'http://localhost:3001';
+  const API_URL = '/api';
   const token = localStorage.getItem('token');
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/api/transactions/categories`, {
+      const response = await fetch(`${API_URL}/transactions/categories`, {
         headers: {
           'Authorization': `Bearer ${token}`
         },
@@ -54,7 +54,7 @@ export default function CategoriesPage({ onPageChange, showMessage }) {
       let response;
       if (editingId) {
         // Edit kategori
-        response = await fetch(`${API_URL}/api/transactions/categories/${editingId}`, {
+        response = await fetch(`${API_URL}/transactions/categories/${editingId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -64,7 +64,7 @@ export default function CategoriesPage({ onPageChange, showMessage }) {
         });
       } else {
         // Tambah kategori baru
-        response = await fetch(`${API_URL}/api/transactions/categories`, {
+        response = await fetch(`${API_URL}/transactions/categories`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -110,7 +110,7 @@ export default function CategoriesPage({ onPageChange, showMessage }) {
         return;
     }
     try {
-      const response = await fetch(`${API_URL}/api/transactions/categories/${id}`, {
+      const response = await fetch(`${API_URL}/transactions/categories/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
