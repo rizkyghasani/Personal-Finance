@@ -217,7 +217,7 @@ export default function BudgetPage({ onPageChange, showMessage }) {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-700 mb-4 text-center">Manajemen Anggaran</h2>
+      <h2 className="text-2xl font-bold text-gray-700 mb-4 text-center">Manajemen AnggaranN</h2>
 
       {/* Form Tambah Anggaran */}
       <div className="p-4 border rounded-lg shadow-sm">
