@@ -31,7 +31,7 @@ export default function BudgetPage({ onPageChange, showMessage }) {
     setLoading(true);
     try {
       const [budgetsRes, categoriesRes] = await Promise.all([
-        fetch(`${API_URL}/transactions/budgets`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_URL}/budgets`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${API_URL}/transactions`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
 
@@ -49,7 +49,7 @@ export default function BudgetPage({ onPageChange, showMessage }) {
       // Ambil spending untuk setiap budget
       const spendingPromises = budgetsData.map(async b => {
         const res = await fetch(
-          `${API_URL}/transactions/budgets/spending?month=${b.month}&year=${b.year}&categoryId=${b.category_id}`,
+          `${API_URL}/budgets/spending?month=${b.month}&year=${b.year}&categoryId=${b.category_id}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         const data = await res.json();
@@ -92,13 +92,13 @@ export default function BudgetPage({ onPageChange, showMessage }) {
 
       let response;
       if (editingId) {
-        response = await fetch(`${API_URL}/transactions/budgets/${editingId}`, {
+        response = await fetch(`${API_URL}/budgets/${editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify(payload),
         });
       } else {
-        response = await fetch(`${API_URL}/transactions/budgets`, {
+        response = await fetch(`${API_URL}/budgets`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify(payload),
@@ -145,7 +145,7 @@ export default function BudgetPage({ onPageChange, showMessage }) {
           return;
       }
       try {
-          const response = await fetch(`${API_URL}/transactions/budgets/${id}`, {
+          const response = await fetch(`${API_URL}/budgets/${id}`, {
               method: 'DELETE',
               headers: { 'Authorization': `Bearer ${token}` },
           });
@@ -166,7 +166,7 @@ export default function BudgetPage({ onPageChange, showMessage }) {
       setDetailsLoading(true);
       try {
           // Perbaikan URL: Hapus duplikasi '/api/'
-          const res = await fetch(`${API_URL}/transactions/budgets/details?month=${budget.month}&year=${budget.year}&categoryId=${budget.category_id}`, {
+          const res = await fetch(`${API_URL}/budgets/details?month=${budget.month}&year=${budget.year}&categoryId=${budget.category_id}`, {
               headers: { 'Authorization': `Bearer ${token}` }
           });
           const details = await res.json();
