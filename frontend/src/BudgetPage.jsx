@@ -22,6 +22,7 @@ export default function BudgetPage({ onPageChange, showMessage }) {
     year: new Date().getFullYear(),
   });
 
+  // URL yang benar sekarang hanya menggunakan /api
   const API_URL = '/api';
   const token = localStorage.getItem('token');
 
@@ -144,7 +145,7 @@ export default function BudgetPage({ onPageChange, showMessage }) {
           return;
       }
       try {
-          const response = await fetch(`${API_URL}/api/transactions/budgets/${id}`, {
+          const response = await fetch(`${API_URL}/transactions/budgets/${id}`, {
               method: 'DELETE',
               headers: { 'Authorization': `Bearer ${token}` },
           });
@@ -164,7 +165,8 @@ export default function BudgetPage({ onPageChange, showMessage }) {
       setSelectedBudget(budget);
       setDetailsLoading(true);
       try {
-          const res = await fetch(`${API_URL}/api/transactions/budgets/details?month=${budget.month}&year=${budget.year}&categoryId=${budget.category_id}`, {
+          // Perbaikan URL: Hapus duplikasi '/api/'
+          const res = await fetch(`${API_URL}/transactions/budgets/details?month=${budget.month}&year=${budget.year}&categoryId=${budget.category_id}`, {
               headers: { 'Authorization': `Bearer ${token}` }
           });
           const details = await res.json();
