@@ -1,5 +1,3 @@
-// backend/transactionsRoutes.js
-
 const express = require('express');
 const db = require('./database');
 const { authenticateToken } = require('./authRoutes');

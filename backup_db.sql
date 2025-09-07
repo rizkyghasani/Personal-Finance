@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict fKIxks5DRmHUTb3CgwdPnZ6fIfgFXY32lGD0pUfzG9V9cz92AGUHLQ7vWde8dxE
+\restrict D5EosF6XlN9SysD9B6kpcRRcG9LjsKvZgjNUbBQGvHmacxqjtx5t4NHa4ujuZIH
 
 -- Dumped from database version 13.22 (Debian 13.22-1.pgdg13+1)
 -- Dumped by pg_dump version 13.22 (Debian 13.22-1.pgdg13+1)
@@ -217,6 +217,8 @@ COPY public.budgets (id, user_id, category_id, amount, month, year, created_at) 
 9	1	9	120000.00	8	2025	2025-08-26 08:23:45.48741+00
 10	1	8	250000.00	8	2025	2025-08-28 05:33:27.375967+00
 11	1	6	200000.00	8	2025	2025-08-28 05:35:17.130864+00
+12	2	4	800000.00	9	2025	2025-09-07 05:53:40.893441+00
+13	2	5	200000.00	9	2025	2025-09-07 05:55:34.382589+00
 \.
 
 
@@ -294,7 +296,7 @@ COPY public.users (id, username, email, password_hash, created_at) FROM stdin;
 -- Name: budgets_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.budgets_id_seq', 11, true);
+SELECT pg_catalog.setval('public.budgets_id_seq', 13, true);
 
 
 --
@@ -410,5 +412,5 @@ ALTER TABLE ONLY public.transactions
 -- PostgreSQL database dump complete
 --
 
-\unrestrict fKIxks5DRmHUTb3CgwdPnZ6fIfgFXY32lGD0pUfzG9V9cz92AGUHLQ7vWde8dxE
+\unrestrict D5EosF6XlN9SysD9B6kpcRRcG9LjsKvZgjNUbBQGvHmacxqjtx5t4NHa4ujuZIH
 
