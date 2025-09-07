@@ -299,13 +299,36 @@ router.post('/', authenticateToken, async (req, res) => {
             [req.user.id, amount, type, category_id, description, date]
         );
         
-        // Cek jika transaksi adalah pengeluaran besar dan kirim notifikasi email
-        if (type === 'expense' && amount > 500000) {
-            const userResult = await db.query('SELECT email, username FROM users WHERE id = $1', [req.user.id]);
-            const { email, username } = userResult.rows[0];
+        // Cek jika transaksi adalah pengeluaran, perbarui anggaran dan kirim notifikasi
+        if (type === 'expense') {
+            const currentMonth = new Date(date).getMonth() + 1;
+            const currentYear = new Date(date).getFullYear();
+
+            // Ambil data anggaran yang relevan
+            const budgetResult = await db.query(
+                'SELECT * FROM budgets WHERE user_id = $1 AND category_id = $2 AND month = $3 AND year = $4',
+                [req.user.id, category_id, currentMonth, currentYear]
+            );
+
+            if (budgetResult.rows.length > 0) {
+                const currentBudget = budgetResult.rows[0];
+                const newAmount = parseFloat(currentBudget.amount) - parseFloat(amount);
+                
+                // Perbarui anggaran di database
+                await db.query(
+                    'UPDATE budgets SET amount = $1 WHERE id = $2',
+                    [newAmount, currentBudget.id]
+                );
+            }
             
-            // Kirim email secara asinkron tanpa menunggu
-            sendNotificationEmail(email, username, result.rows[0]);
+            // Cek jika transaksi adalah pengeluaran besar dan kirim notifikasi email
+            if (amount > 500000) {
+                const userResult = await db.query('SELECT email, username FROM users WHERE id = $1', [req.user.id]);
+                const { email, username } = userResult.rows[0];
+                
+                // Kirim email secara asinkron tanpa menunggu
+                sendNotificationEmail(email, username, result.rows[0]);
+            }
         }
 
         res.status(201).json(result.rows[0]);
@@ -328,6 +351,33 @@ router.put('/:id', authenticateToken, async (req, res) => {
         if (result.rows.length === 0) {
             return res.status(404).json({ message: 'Transaction not found or not authorized' });
         }
+        
+        // Logika update anggaran
+        const oldTransactionResult = await db.query('SELECT * FROM transactions WHERE id = $1', [id]);
+        const oldTransaction = oldTransactionResult.rows[0];
+
+        if (oldTransaction && oldTransaction.type === 'expense') {
+            const currentMonth = new Date(date).getMonth() + 1;
+            const currentYear = new Date(date).getFullYear();
+            const oldAmount = parseFloat(oldTransaction.amount);
+            const newAmount = parseFloat(amount);
+            
+            // Ambil data anggaran yang relevan
+            const budgetResult = await db.query(
+                'SELECT * FROM budgets WHERE user_id = $1 AND category_id = $2 AND month = $3 AND year = $4',
+                [req.user.id, category_id, currentMonth, currentYear]
+            );
+
+            if (budgetResult.rows.length > 0) {
+                const currentBudget = budgetResult.rows[0];
+                const newBudgetAmount = parseFloat(currentBudget.amount) + oldAmount - newAmount;
+                
+                await db.query(
+                    'UPDATE budgets SET amount = $1 WHERE id = $2',
+                    [newBudgetAmount, currentBudget.id]
+                );
+            }
+        }
 
         res.json(result.rows[0]);
     } catch (error) {
@@ -340,13 +390,42 @@ router.put('/:id', authenticateToken, async (req, res) => {
 router.delete('/:id', authenticateToken, async (req, res) => {
     const { id } = req.params;
     try {
-        const result = await db.query('DELETE FROM budgets WHERE id = $1 AND user_id = $2 RETURNING id', [id, req.user.id]);
-        if (result.rows.length === 0) {
-            return res.status(404).json({ message: 'Anggaran tidak ditemukan atau tidak diotorisasi' });
+        // Logika untuk memperbarui anggaran sebelum menghapus transaksi
+        const transactionResult = await db.query('SELECT * FROM transactions WHERE id = $1 AND user_id = $2', [id, req.user.id]);
+        if (transactionResult.rows.length === 0) {
+            return res.status(404).json({ message: 'Transaksi tidak ditemukan atau tidak diotorisasi' });
         }
-        res.json({ message: 'Anggaran berhasil dihapus!' });
+        
+        const transaction = transactionResult.rows[0];
+        if (transaction.type === 'expense') {
+            const currentMonth = new Date(transaction.date).getMonth() + 1;
+            const currentYear = new Date(transaction.date).getFullYear();
+            const transactionAmount = parseFloat(transaction.amount);
+
+            // Ambil data anggaran yang relevan
+            const budgetResult = await db.query(
+                'SELECT * FROM budgets WHERE user_id = $1 AND category_id = $2 AND month = $3 AND year = $4',
+                [req.user.id, transaction.category_id, currentMonth, currentYear]
+            );
+
+            if (budgetResult.rows.length > 0) {
+                const currentBudget = budgetResult.rows[0];
+                const newBudgetAmount = parseFloat(currentBudget.amount) + transactionAmount;
+                
+                await db.query(
+                    'UPDATE budgets SET amount = $1 WHERE id = $2',
+                    [newBudgetAmount, currentBudget.id]
+                );
+            }
+        }
+        
+        const result = await db.query('DELETE FROM transactions WHERE id = $1 AND user_id = $2 RETURNING id', [id, req.user.id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Transaksi tidak ditemukan atau tidak diotorisasi' });
+        }
+        res.json({ message: 'Transaksi berhasil dihapus!' });
     } catch (error) {
-        console.error('Error deleting budget:', error.stack);
+        console.error('Error deleting transaction:', error.stack);
         res.status(500).json({ message: 'Server error' });
     }
 });
