@@ -22,16 +22,14 @@ export default function BudgetPage({ onPageChange, showMessage }) {
     year: new Date().getFullYear(),
   });
 
-  // URL yang benar sekarang hanya menggunakan /api
   const API_URL = '/api';
   const token = localStorage.getItem('token');
 
-  // Fetch data
   const fetchData = async () => {
     setLoading(true);
     try {
       const [budgetsRes, categoriesRes] = await Promise.all([
-        fetch(`${API_URL}/budgets`, { headers: { Authorization: `Bearer ${token}` } }),
+        fetch(`${API_URL}/transactions/budgets`, { headers: { Authorization: `Bearer ${token}` } }),
         fetch(`${API_URL}/transactions`, { headers: { Authorization: `Bearer ${token}` } }),
       ]);
 
@@ -46,10 +44,9 @@ export default function BudgetPage({ onPageChange, showMessage }) {
       setCategories(categoriesData.categories.filter(c => c.type === 'expense'));
       setError(null);
 
-      // Ambil spending untuk setiap budget
       const spendingPromises = budgetsData.map(async b => {
         const res = await fetch(
-          `${API_URL}/budgets/spending?month=${b.month}&year=${b.year}&categoryId=${b.category_id}`,
+          `${API_URL}/transactions/budgets/spending?month=${b.month}&year=${b.year}&categoryId=${b.category_id}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         const data = await res.json();
@@ -92,13 +89,13 @@ export default function BudgetPage({ onPageChange, showMessage }) {
 
       let response;
       if (editingId) {
-        response = await fetch(`${API_URL}/budgets/${editingId}`, {
+        response = await fetch(`${API_URL}/transactions/budgets/${editingId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify(payload),
         });
       } else {
-        response = await fetch(`${API_URL}/budgets`, {
+        response = await fetch(`${API_URL}/transactions/budgets`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify(payload),
@@ -153,7 +150,8 @@ export default function BudgetPage({ onPageChange, showMessage }) {
           });
 
           if (!response.ok) {
-              throw new Error('Gagal menghapus anggaran.');
+              const errorData = await response.json();
+              throw new Error(errorData.message || 'Gagal menghapus anggaran.');
           }
           showMessage('Anggaran berhasil dihapus!');
           fetchData();
@@ -167,15 +165,16 @@ export default function BudgetPage({ onPageChange, showMessage }) {
       setSelectedBudget(budget);
       setDetailsLoading(true);
       try {
-          // Perbaikan URL: Hapus duplikasi '/api/'
-          const res = await fetch(`${API_URL}/budgets/details?month=${budget.month}&year=${budget.year}&categoryId=${budget.category_id}`, {
+          // URL yang sudah diperbaiki
+          const res = await fetch(`${API_URL}/transactions/budgets/details?month=${budget.month}&year=${budget.year}&categoryId=${budget.category_id}`, {
               headers: { 'Authorization': `Bearer ${token}` }
           });
           const details = await res.json();
           if (res.ok) {
               setBudgetDetails(details);
           } else {
-              throw new Error(details.message || 'Gagal memuat detail transaksi.');
+              const errorData = await res.json();
+              throw new Error(errorData.message || 'Gagal memuat detail transaksi.');
           }
       } catch (err) {
           console.error('Error fetching budget details:', err);
@@ -219,7 +218,7 @@ export default function BudgetPage({ onPageChange, showMessage }) {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-gray-700 mb-4 text-center">Manajemen AnggaranN</h2>
+      <h2 className="text-2xl font-bold text-gray-700 mb-4 text-center">Manajemen Anggaran</h2>
 
       {/* Form Tambah Anggaran */}
       <div className="p-4 border rounded-lg shadow-sm">
