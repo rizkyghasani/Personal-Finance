@@ -145,9 +145,11 @@ export default function BudgetPage({ onPageChange, showMessage }) {
           return;
       }
       try {
-          const response = await fetch(`${API_URL}/budgets/${id}`, {
+          const response = await fetch(`${API_URL}/transactions/budgets/${id}`, {
               method: 'DELETE',
-              headers: { 'Authorization': `Bearer ${token}` },
+              headers: { 
+                'Authorization': `Bearer ${token}`,
+              },
           });
 
           if (!response.ok) {
