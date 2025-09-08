@@ -213,7 +213,7 @@ export default function CategoriesPage({ onPageChange, showMessage }) {
 
       {/* Daftar Kategori */}
       <div className="p-4 border rounded-lg shadow-sm max-h-96 overflow-y-auto">
-        <h3 className="text-lg font-semibold text-gray-700 mb-4">Daftar Kategori Anda</h3>
+        <h3 className="text-lg font-semibold text-gray-700 mb-4">Ini Daftar Kategori Anda</h3>
         <ul className="divide-y divide-gray-200">
           {categories.length > 0 ? (
             categories.map(c => (
